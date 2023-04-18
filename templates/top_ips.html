@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Top IPs de Origen</title>
+</head>
+<body>
+    <h1>Top IPs de Origen más Problemáticas</h1>
+    <table>
+        <tr>
+            <th>IP de Origen</th>
+            <th>Cantidad de Alertas</th>
+        </tr>
+        {% for ip, count in top_ips.items() %}
+            <tr>
+                <td>{{ ip }}</td>
+                <td>{{ count }}</td>
+            </tr>
+        {% endfor %}
+    </table>
+</body>
+</html>

@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dispositivos y Vulnerabilidades</title>
+</head>
+<body>
+    <h1>Top Dispositivos más vulnerables</h1>
+    <table>
+        <tr>
+            <th>ID Dispositivo</th>
+            <th>Vulnerabilidades</th>
+        </tr>
+        {% for index, row in top_devices.iterrows() %}
+        <tr>
+            <td>{{ row['id_dev'] }}</td>
+            <td>{{ row['vulnerabilidades'] }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+</body>
+</html>
