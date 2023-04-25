@@ -1,6 +1,7 @@
 import sqlite3
 
-from flask import Flask, render_template
+
+from flask import *
 import pandas as pd;
 app = Flask(__name__)
 
@@ -31,3 +32,24 @@ def top_devices(num_devices):
 
 if __name__ == '__main__':
     app.run()
+
+
+@app.route('/dangerousDevices/<int:x>', methods=['GET','POST'])
+def danger_devices(x):
+
+    option = request.args.get('option')
+    conn = sqlite3.connect('practica1.db')
+    df_devices_analisis = pd.read_sql_query("SELECT * FROM devices JOIN analisis on devices.analisis_id=analisis.id",conn)
+
+    df_devices_analisis['porcentaje_inseguros'] = (df_devices_analisis['servicios_inseguros']/df_devices_analisis['servicios']) * 100
+
+    # Filtrar dispositivos peligrosos según la opción seleccionada
+    if option == 'menos_inseguros':
+        dangerous_df = df_devices_analisis[df_devices_analisis['porcentaje_inseguros'] < 33]
+    else:
+        dangerous_df = df_devices_analisis[df_devices_analisis['porcentaje_inseguros'] >= 33]
+
+    top_x = dangerous_df.sort_values('porcentaje_inseguros').head(x)
+    return render_template('dangerous_devices.html', x=x, option=option, top_x=top_x)
+
+

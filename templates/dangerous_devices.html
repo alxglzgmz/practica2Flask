@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Top Dispositivos</title>
+</head>
+<body>
+    <h1>Top Dispositivos</h1>
+    <form method="get" action="/top_dispositivos">
+        <label>
+            Mostrar:
+                <input type="radio" name="option" value="mas_inseguros" {% if option == 'mas_inseguros' %}checked{% endif %}> Mostrar más inseguros
+                <input type="radio" name="option" value="menos_inseguros" {% if option == 'menos_inseguros' %}checked{% endif %}> Mostrar menos inseguros
+        </label>
+        <br>
+        <br>
+        <input type="submit" value="Mostrar">
+        <input type="hidden" name="x" value="{{ x }}">
+    </form>
+    <br>
+    {% if top_x is not none %}
+        <table>
+            <tr>
+                <th>Dispositivo</th>
+                <th>Porcentaje Inseguros</th>
+            </tr>
+            {% for index, row in top_x.iterrows() %}
+                <tr>
+                    <td>{{ row['id_dev'] }}</td>
+                    <td>{{ row['porcentaje_inseguros'] }}</td>
+                </tr>
+            {% endfor %}
+        </table>
+    {% endif %}
+</body>
+</html>
