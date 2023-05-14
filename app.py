@@ -14,7 +14,8 @@ import requests
 
 import plotly.express as px
 server = Flask(__name__)
-app = dash.Dash(__name__, server=server)
+app = dash.Dash(external_stylesheets=[dbc.themes.PULSE], server=server, title="Dashboard SI")
+
 
 
 conn = sqlite3.connect('practica1.db')
@@ -31,8 +32,14 @@ least_dangerous_devices = df_devices_analisis[df_devices_analisis['porcentaje_in
 least_dangerous_devices = least_dangerous_devices[['id_dev','porcentaje_inseguros']]
 fig_devices = px.bar(top_devices, x="id_dev", y="vulnerabilidades")
 
-fig_most_devices = px.bar(most_dangerous_devices, x="id_dev", y="porcentaje_inseguros")
-fig_least_devices = px.bar(least_dangerous_devices, x="id_dev",y="porcentaje_inseguros")
+fig_most_devices = px.bar(most_dangerous_devices, x="id_dev", y="porcentaje_inseguros", title="Dispositivos más peligrosos")
+fig_most_devices.update_traces(marker_color='red')
+fig_most_devices.update_xaxes(title_text="ID Dispositivo")
+fig_most_devices.update_yaxes(title_text="% Servicios Inseguros")
+fig_least_devices = px.bar(least_dangerous_devices, x="id_dev",y="porcentaje_inseguros", title="Dispositivos menos peligrosos")
+fig_least_devices.update_traces(marker_color='green')
+fig_least_devices.update_xaxes(title_text="ID Dispositivo")
+fig_least_devices.update_yaxes(title_text="% Servicios Inseguros")
 
 top_devices = top_devices.set_index('id_dev')
 
@@ -44,28 +51,38 @@ df_cve = pd.read_json(response.text)
 df_cve= df_cve.head(10)
 df_cve=df_cve[['Published','id']]
 
+print(top_ips.reset_index().to_dict('records'))
 
 table_ips = dash_table.DataTable(
     data=top_ips.reset_index().to_dict('records'),
-    columns=[{'name': i, 'id': i} for i in top_ips.reset_index().columns],
+    columns=[{"name": 'IPs Origen', "id": 'index'}, {'name': 'Apariciones', 'id': 'origen'}],
+
     style_cell={
         'textAlign':'left',
         'minWidth' : '0px',
     },
     style_table={
         'maxWidth':'400px', 'border':'1px solid black'
-    }
+    },
+    style_header={
+                'fontWeight':'bold',
+                'fontSize':'20px'
+            }
 )
 table_devices = dash_table.DataTable(
     data=top_devices.reset_index().to_dict('records'),
-    columns=[{'name': i, 'id': i} for i in top_devices.reset_index().columns],
+    columns=[{"name": 'ID Dispositivo', "id": 'id_dev'}, {'name': 'Nº Vulnerabilidades', 'id':'vulnerabilidades'}],
     style_cell={
         'textAlign':'left',
         'minWidth' : '0px',
     },
     style_table={
         'maxWidth':'400px', 'border':'1px solid black'
-    }
+    },
+    style_header={
+                'fontWeight':'bold',
+                'fontSize':'20px'
+            }
 )
 
 table_cve = dash_table.DataTable(
@@ -77,59 +94,130 @@ table_cve = dash_table.DataTable(
     },
     style_table={
         'maxWidth':'400px', 'border':'1px solid black'
-    }
+    },
+    style_header={
+                'fontWeight':'bold',
+                'fontSize':'20px'
+            }
 )
 
 # Define el layout de la aplicación
 
 
 
-app.layout = html.Div(children=[
-    html.H1(children='Mi Dashboard'),
-    html.H1(children='''
-        Top 10 direcciones IP
-    '''),
-    table_ips,
-    dcc.Graph(
-        id='graph',
-        figure={
-            'data': [ips_bar],
-            'layout': {
-                'title': 'Top 10 IP Addresses',
-                'xaxis': {'title': 'Direcciones IP'},
-                'yaxis': {'title': 'Apariciones'}
-            }
-        }
-    ),
-    html.H1(children='''
-        Top dispositivos más vulnerables
-    '''),
-    table_devices,
-    dcc.Graph(
-        id='graph2',
-        figure=fig_devices
+# app.layout = dbc.Container(children=[
+#     html.H1(children='Mi Dashboard'),
+#     html.Br(),
+#     html.Br(),
+#     html.H1(children='''
+#         Top 10 direcciones IP
+#     '''),
+#     html.Div([
+#         table_ips,
+#         html.Br(),
+#         dcc.Graph(
+#             id='graph',
+#             figure={
+#                 'data': [ips_bar],
+#                 'layout': {
+#                     'title': 'Top 10 Direcciones IP Origen',
+#                     'xaxis': {'title': 'Direcciones IP'},
+#                     'yaxis': {'title': 'Apariciones'}
+#                 }
+#             }
+#         ),], style={'padding': '10px'}),
+#     html.H1(children='''
+#         Top dispositivos más vulnerables
+#     '''),
+#     html.Div([
+#         table_devices,
+#         html.Br(),
+#         dcc.Graph(
+#             id='graph2',
+#             figure=fig_devices
+#
+#         ),], style={'padding':'10 px'}),
+#     html.H1(children='''
+#         Top dispositivos peligrosos
+#     '''),
+#     html.Br(),
+#     html.H2(children='''
+#         Elija una opción:
+#     '''),
+#
+#     dcc.RadioItems(options=['Dispositivos más peligrosos','Dispositivos menos peligrosos'],value='Dispositivos más peligrosos', id='controls-and-radio-item'),
+#     html.Br(),
+#     html.H2(children='''
+#         Tabla de la opción elegida:
+#     '''),
+#     html.Br(),
+#     html.Div(id='tabla'),
+#     html.Br(),
+#     html.H2(children='''
+#         Gráfico de la opción elegida:
+#     '''),
+#     html.Br(),
+#     html.Div(id='grafico'),
+#     html.Br(),
+#     html.H1(children='''
+#         Últimas 10 CVEs descubiertas
+#     '''),
+#     html.Br(),
+#     table_cve
+# ])
 
+app.layout = html.Div([
+    dbc.NavbarSimple(
+        children=[
+            dbc.NavItem(dbc.NavLink("Inicio", href="#")),
+            dbc.DropdownMenu(
+                children=[
+                    dbc.DropdownMenuItem("Opción 1", href="#"),
+                    dbc.DropdownMenuItem("Opción 2", href="#")
+                ],
+                nav=True,
+                in_navbar=True,
+                label="Desplegable"
+            )
+        ],
+        brand="Título de la navbar",
+        color="primary",
+        dark=True
     ),
-    html.H1(children='''
-        Top dispositivos peligrosos
-    '''),
-    html.H2(children='''
-        Elija una opción:
-    '''),
+    dbc.Container(
+        [
+            dbc.Row(
+                [
+                    dbc.Col(
+                        html.H1("Título del dashboard", className="text-center")
+                    )
+                ]
+            ),
+            dbc.Row(
+                [
+                    dbc.Col(
+                        html.Div([
+                            html.H2("Top 10 IPs Origen más Problemáticas"),
+                            table_ips,
+                            dcc.Graph(
+                                 id='graph',
+                                 figure={
+                                     'data': [ips_bar],
+                                     'layout': {
+                                         'title': 'Top 10 Direcciones IP Origen',
+                                         'xaxis': {'title': 'Direcciones IP'},
+                                         'yaxis': {'title': 'Apariciones'}
+                                     }
+                                 }
+                             )
 
-    dcc.RadioItems(options=['Dispositivos más peligrosos','Dispositivos menos peligrosos'],value='Dispositivos más peligrosos', id='controls-and-radio-item'),
-    html.H2(children='''
-        Tabla de la opción elegida:
-    '''),
-    html.Div(id='tabla'),
-    html.H2(children='''
-        Gráfico de la opción elegida:
-    '''),
-    html.Div(id='grafico'),
-html.H1(children='''
-        Últimas 10 CVEs descubiertas
-    '''),
-    table_cve
+                        ])
+                    )
+                ]
+            )
+        ],
+        className="mt-4"
+    )
 ])
 
 @callback(
@@ -142,13 +230,17 @@ def update_table(value):
         return dash_table.DataTable(
             id='table1',
             data=most_dangerous_devices.to_dict('records'),
-            columns=[{'name': i, 'id': i} for i in most_dangerous_devices.columns],
+            columns=[{"name": 'ID Dispositivo', "id": 'id_dev'}, {'name': '% Inseguros', 'id': 'porcentaje_inseguros'}],
             style_cell={
                 'textAlign': 'left',
                 'minWidth': '0px',
             },
             style_table={
                 'maxWidth': '400px', 'border': '1px solid black'
+            },
+            style_header={
+                'fontWeight':'bold',
+                'fontSize':'20px'
             }
         )
     else:
@@ -163,6 +255,10 @@ def update_table(value):
             },
             style_table={
                 'maxWidth': '400px', 'border': '1px solid black'
+            },
+            style_header={
+                'fontWeight': 'bold',
+                'fontSize': '20px'
             }
         )
 
