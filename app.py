@@ -324,39 +324,36 @@ def update_graph(value):
 
 
 @callback(
-	Output('informe', 'children'),
-	Input(component_id='boton-generar-informe', component_property='value')
+    Output('informe', 'children'),
+    Input(component_id='boton-generar-informe', component_property='n_clicks')
 )
-def generar_informe():
-    # Crear documento PDF
-    pdf = FPDF()
-    pdf.add_page()
+def generar_informe(n_clicks):
+    if n_clicks:
+        # Crear documento PDF
+        pdf = FPDF()
+        pdf.add_page()
 
-    # Agregar título y subtítulo
-    pdf.set_font("Arial", size=16)
-    pdf.cell(200, 10, txt="Informe de Vulnerabilidades", ln=1, align="C")
-    pdf.set_font("Arial", size=12)
-    pdf.cell(200, 10, txt="Generado automáticamente por Dashboard SI", ln=1, align="C")
+        # Agregar título y subtítulo
+        pdf.set_font("Arial", size=16)
+        pdf.cell(200, 10, txt="Informe de Vulnerabilidades", ln=1, align="C")
+        pdf.set_font("Arial", size=12)
+        pdf.cell(200, 10, txt="Generado automáticamente por Dashboard SI", ln=1, align="C")
 
-    # Agregar gráficos y tablas
-    pdf.cell(200, 10, txt="Top Dispositivos Vulnerables", ln=1)
-    pdf.image("fig_devices.png", x=10, y=40, w=100)
-    pdf.cell(200, 10, txt="Dispositivos más peligrosos", ln=1)
-    pdf.image("fig_most_devices.png", x=10, y=100, w=100)
-    pdf.cell(200, 10, txt="Dispositivos menos peligrosos", ln=1)
-    pdf.image("fig_least_devices.png", x=10, y=160, w=100)
-    pdf.cell(200, 10, txt="Top 10 Direcciones IP Origen", ln=1)
-    pdf.set_font("Arial", size=10)
-    pdf.cell(200, 10, txt=table_ips.to_string(index=False), ln=1)
-    pdf.cell(200, 10, txt="Top 10 CVEs más recientes", ln=1)
-    pdf.cell(200, 10, txt=table_cve.to_string(index=False), ln=1)
+        # Agregar gráficos y tablas
+        pdf.cell(200, 10, txt="Top Dispositivos Vulnerables", ln=1)
+        pdf.image("fig_devices.png", x=10, y=40, w=100)
+        pdf.cell(200, 10, txt="Dispositivos más peligrosos", ln=1)
+        pdf.image("fig_most_devices.png", x=10, y=100, w=100)
+        pdf.cell(200, 10, txt="Dispositivos menos peligrosos", ln=1)
+        pdf.image("fig_least_devices.png", x=10, y=160, w=100)
+        pdf.cell(200, 10, txt="Top 10 Direcciones IP Origen", ln=1)
+        pdf.set_font("Arial", size=10)
+        pdf.cell(200, 10, txt=table_ips.to_string(index=False), ln=1)
+        pdf.cell(200, 10, txt="Top 10 CVEs más recientes", ln=1)
+        pdf.cell(200, 10, txt=table_cve.to_string(index=False), ln=1)
 
-    # Guardar PDF
-    pdf.output("informe.pdf")
-
-
-
-
+        # Guardar PDF
+        return send_file("informe.pdf")
 
 
 # @app.route('/')
