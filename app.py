@@ -9,50 +9,57 @@ import plotly.graph_objects as go
 from dash import dash_table
 from dash import dcc
 import requests
-
-
+from fpdf import FPDF
+from io import BytesIO
+from flask import send_file
+import tempfile
 
 import plotly.express as px
+
 server = Flask(__name__)
 app = dash.Dash(external_stylesheets=[dbc.themes.UNITED], server=server, title="Dashboard SI")
 
-
-
 conn = sqlite3.connect('practica1.db')
 df_alerts = pd.read_sql_query("SELECT * FROM alerts", conn)
-df_devices_analisis = pd.read_sql_query("SELECT * FROM devices JOIN analisis on devices.analisis_id=analisis.id",conn)
+df_devices_analisis = pd.read_sql_query("SELECT * FROM devices JOIN analisis on devices.analisis_id=analisis.id", conn)
 ord_devices = df_devices_analisis.sort_values(by='vulnerabilidades', ascending=False).head(10)
 top_devices = ord_devices[["id_dev", "vulnerabilidades"]]
 
-df_devices_analisis = pd.read_sql_query("SELECT * FROM devices JOIN analisis on devices.analisis_id=analisis.id",conn)
-df_devices_analisis['porcentaje_inseguros'] = (df_devices_analisis['servicios_inseguros']/df_devices_analisis['servicios']) * 100
+df_devices_analisis = pd.read_sql_query("SELECT * FROM devices JOIN analisis on devices.analisis_id=analisis.id", conn)
+df_devices_analisis['porcentaje_inseguros'] = (df_devices_analisis['servicios_inseguros'] / df_devices_analisis[
+    'servicios']) * 100
 most_dangerous_devices = df_devices_analisis[df_devices_analisis['porcentaje_inseguros'] >= 33]
-most_dangerous_devices= most_dangerous_devices[['id_dev','porcentaje_inseguros']]
+most_dangerous_devices = most_dangerous_devices[['id_dev', 'porcentaje_inseguros']]
 least_dangerous_devices = df_devices_analisis[df_devices_analisis['porcentaje_inseguros'] < 33]
-least_dangerous_devices = least_dangerous_devices[['id_dev','porcentaje_inseguros']]
+least_dangerous_devices = least_dangerous_devices[['id_dev', 'porcentaje_inseguros']]
 fig_devices = px.bar(top_devices, x="id_dev", y="vulnerabilidades", title="Top Dispositivos Vulnerables")
 fig_devices.update_xaxes(title_text="ID Dispositivo")
 fig_devices.update_yaxes(title_text="Vulnerabilidades")
 fig_devices.update_traces(marker_color='purple')
+fig_devices.write_image("fig_devices.png")
 
-fig_most_devices = px.bar(most_dangerous_devices, x="id_dev", y="porcentaje_inseguros", title="Dispositivos más peligrosos")
+fig_most_devices = px.bar(most_dangerous_devices, x="id_dev", y="porcentaje_inseguros",
+                          title="Dispositivos más peligrosos")
 fig_most_devices.update_traces(marker_color='red')
 fig_most_devices.update_xaxes(title_text="ID Dispositivo")
 fig_most_devices.update_yaxes(title_text="% Servicios Inseguros")
-fig_least_devices = px.bar(least_dangerous_devices, x="id_dev",y="porcentaje_inseguros", title="Dispositivos menos peligrosos")
+fig_most_devices.write_image("fig_most_devices.png")
+fig_least_devices = px.bar(least_dangerous_devices, x="id_dev", y="porcentaje_inseguros",
+                           title="Dispositivos menos peligrosos")
 fig_least_devices.update_traces(marker_color='green')
 fig_least_devices.update_xaxes(title_text="ID Dispositivo")
 fig_least_devices.update_yaxes(title_text="% Servicios Inseguros")
+fig_least_devices.write_image("fig_least_devices.png")
 
 top_devices = top_devices.set_index('id_dev')
 
 top_ips = df_alerts['origen'].value_counts().head(10)
-ips_bar = go.Bar(x=top_ips.index,y=top_ips.values)
+ips_bar = go.Bar(x=top_ips.index, y=top_ips.values)
 
 response = requests.get('https://cve.circl.lu/api/last')
 df_cve = pd.read_json(response.text)
-df_cve= df_cve.head(10)
-df_cve=df_cve[['Published','id']]
+df_cve = df_cve.head(10)
+df_cve = df_cve[['Published', 'id']]
 
 print(top_ips.reset_index().to_dict('records'))
 
@@ -61,51 +68,50 @@ table_ips = dash_table.DataTable(
     columns=[{"name": 'IPs Origen', "id": 'index'}, {'name': 'Apariciones', 'id': 'origen'}],
 
     style_cell={
-        'textAlign':'left',
-        'minWidth' : '0px',
+        'textAlign': 'left',
+        'minWidth': '0px',
     },
     style_table={
-        'maxWidth':'400px', 'border':'1px solid black'
+        'maxWidth': '400px', 'border': '1px solid black'
     },
     style_header={
-                'fontWeight':'bold',
-                'fontSize':'20px'
-            }
+        'fontWeight': 'bold',
+        'fontSize': '20px'
+    }
 )
 table_devices = dash_table.DataTable(
     data=top_devices.reset_index().to_dict('records'),
-    columns=[{"name": 'ID Dispositivo', "id": 'id_dev'}, {'name': 'Nº Vulnerabilidades', 'id':'vulnerabilidades'}],
+    columns=[{"name": 'ID Dispositivo', "id": 'id_dev'}, {'name': 'Nº Vulnerabilidades', 'id': 'vulnerabilidades'}],
     style_cell={
-        'textAlign':'left',
-        'minWidth' : '0px',
+        'textAlign': 'left',
+        'minWidth': '0px',
     },
     style_table={
-        'maxWidth':'400px', 'border':'1px solid black'
+        'maxWidth': '400px', 'border': '1px solid black'
     },
     style_header={
-                'fontWeight':'bold',
-                'fontSize':'20px'
-            }
+        'fontWeight': 'bold',
+        'fontSize': '20px'
+    }
 )
 
 table_cve = dash_table.DataTable(
     data=df_cve.to_dict('records'),
-    columns=[{"name": 'ID del CVE', "id": 'id'}, {'name': 'Publicado', 'id':'Published'}],
+    columns=[{"name": 'ID del CVE', "id": 'id'}, {'name': 'Publicado', 'id': 'Published'}],
     style_cell={
-        'textAlign':'left',
-        'minWidth' : '0px',
+        'textAlign': 'left',
+        'minWidth': '0px',
     },
     style_table={
-        'maxWidth':'400px', 'border':'1px solid black'
+        'maxWidth': '400px', 'border': '1px solid black'
     },
     style_header={
-                'fontWeight':'bold',
-                'fontSize':'20px'
-            }
+        'fontWeight': 'bold',
+        'fontSize': '20px'
+    }
 )
 
 # Define el layout de la aplicación
-
 
 
 # app.layout = dbc.Container(children=[
@@ -197,16 +203,16 @@ app.layout = html.Div([
                             html.H2("Top 10 IPs Origen más Problemáticas"),
                             table_ips,
                             dcc.Graph(
-                                 id='graph',
-                                 figure={
-                                     'data': [ips_bar],
-                                     'layout': {
-                                         'title': 'Top 10 Direcciones IP Origen',
-                                         'xaxis': {'title': 'Direcciones IP'},
-                                         'yaxis': {'title': 'Apariciones'}
-                                     }
-                                 }
-                             )
+                                id='graph',
+                                figure={
+                                    'data': [ips_bar],
+                                    'layout': {
+                                        'title': 'Top 10 Direcciones IP Origen',
+                                        'xaxis': {'title': 'Direcciones IP'},
+                                        'yaxis': {'title': 'Apariciones'}
+                                    }
+                                }
+                            )
 
                         ])
                     ),
@@ -215,10 +221,10 @@ app.layout = html.Div([
                             html.H2("Top dispositivos más vulnerables"),
                             table_devices,
                             dcc.Graph(
-                                 id='graph2',
-                                 figure=fig_devices
+                                id='graph2',
+                                figure=fig_devices
 
-                             )
+                            )
 
                         ])
                     )
@@ -229,12 +235,11 @@ app.layout = html.Div([
 
                 html.H2("Top dispositivos inseguros"),
                 html.H3("Elija una opción:"),
-                dcc.RadioItems(options=['Dispositivos más peligrosos','Dispositivos menos peligrosos'],value='Dispositivos más peligrosos', id='controls-and-radio-item',labelStyle={'display': 'block'},
-                inputClassName='form-check-input',
-                labelClassName='form-check-label')
-
-
-
+                dcc.RadioItems(options=['Dispositivos más peligrosos', 'Dispositivos menos peligrosos'],
+                               value='Dispositivos más peligrosos', id='controls-and-radio-item',
+                               labelStyle={'display': 'block'},
+                               inputClassName='form-check-input',
+                               labelClassName='form-check-label')
 
             ]),
             html.Br(),
@@ -265,6 +270,7 @@ app.layout = html.Div([
     )
 ])
 
+
 @callback(
     Output('tabla', 'children'),
     Input(component_id='controls-and-radio-item', component_property='value')
@@ -284,8 +290,8 @@ def update_table(value):
                 'maxWidth': '400px', 'border': '1px solid black'
             },
             style_header={
-                'fontWeight':'bold',
-                'fontSize':'20px'
+                'fontWeight': 'bold',
+                'fontSize': '20px'
             }
         )
     else:
@@ -306,6 +312,7 @@ def update_table(value):
                 'fontSize': '20px'
             }
         )
+
 
 @callback(
     Output('grafico', 'children'),
@@ -348,12 +355,16 @@ def generar_informe(n_clicks):
         pdf.image("fig_least_devices.png", x=10, y=160, w=100)
         pdf.cell(200, 10, txt="Top 10 Direcciones IP Origen", ln=1)
         pdf.set_font("Arial", size=10)
-        pdf.cell(200, 10, txt=table_ips.to_string(index=False), ln=1)
+        pdf.cell(200, 10, txt=top_ips.to_frame().to_string(index=False), ln=1)
         pdf.cell(200, 10, txt="Top 10 CVEs más recientes", ln=1)
-        pdf.cell(200, 10, txt=table_cve.to_string(index=False), ln=1)
+        pdf.cell(200, 10, txt=df_cve.to_string(index=False), ln=1)
 
-        # Guardar PDF
-        return send_file("informe.pdf")
+        # Crear documento PDF
+        with tempfile.NamedTemporaryFile(delete=False) as tmp:
+            pdf.output(tmp.name)
+
+        # Enviar archivo como respuesta
+        return send_file(tmp.name, as_attachment=True)
 
 
 # @app.route('/')
