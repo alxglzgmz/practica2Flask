@@ -14,7 +14,7 @@ import requests
 
 import plotly.express as px
 server = Flask(__name__)
-app = dash.Dash(external_stylesheets=[dbc.themes.PULSE], server=server, title="Dashboard SI")
+app = dash.Dash(external_stylesheets=[dbc.themes.UNITED], server=server, title="Dashboard SI")
 
 
 
@@ -30,7 +30,10 @@ most_dangerous_devices = df_devices_analisis[df_devices_analisis['porcentaje_ins
 most_dangerous_devices= most_dangerous_devices[['id_dev','porcentaje_inseguros']]
 least_dangerous_devices = df_devices_analisis[df_devices_analisis['porcentaje_inseguros'] < 33]
 least_dangerous_devices = least_dangerous_devices[['id_dev','porcentaje_inseguros']]
-fig_devices = px.bar(top_devices, x="id_dev", y="vulnerabilidades")
+fig_devices = px.bar(top_devices, x="id_dev", y="vulnerabilidades", title="Top Dispositivos Vulnerables")
+fig_devices.update_xaxes(title_text="ID Dispositivo")
+fig_devices.update_yaxes(title_text="Vulnerabilidades")
+fig_devices.update_traces(marker_color='purple')
 
 fig_most_devices = px.bar(most_dangerous_devices, x="id_dev", y="porcentaje_inseguros", title="Dispositivos más peligrosos")
 fig_most_devices.update_traces(marker_color='red')
@@ -170,17 +173,9 @@ app.layout = html.Div([
     dbc.NavbarSimple(
         children=[
             dbc.NavItem(dbc.NavLink("Inicio", href="#")),
-            dbc.DropdownMenu(
-                children=[
-                    dbc.DropdownMenuItem("Opción 1", href="#"),
-                    dbc.DropdownMenuItem("Opción 2", href="#")
-                ],
-                nav=True,
-                in_navbar=True,
-                label="Desplegable"
-            )
+
         ],
-        brand="Título de la navbar",
+        brand="CMI",
         color="primary",
         dark=True
     ),
@@ -189,8 +184,10 @@ app.layout = html.Div([
             dbc.Row(
                 [
                     dbc.Col(
-                        html.H1("Título del dashboard", className="text-center")
-                    )
+                        html.H1("Dashboard SI", className="text-center"),
+
+                    ),
+                    html.Br()
                 ]
             ),
             dbc.Row(
@@ -212,9 +209,49 @@ app.layout = html.Div([
                              )
 
                         ])
+                    ),
+                    dbc.Col(
+                        html.Div([
+                            html.H2("Top dispositivos más vulnerables"),
+                            table_devices,
+                            dcc.Graph(
+                                 id='graph2',
+                                 figure=fig_devices
+
+                             )
+
+                        ])
                     )
                 ]
-            )
+            ),
+            html.Br(),
+            dbc.Row([
+
+                html.H2("Top dispositivos inseguros"),
+                html.H3("Elija una opción:"),
+                dcc.RadioItems(options=['Dispositivos más peligrosos','Dispositivos menos peligrosos'],value='Dispositivos más peligrosos', id='controls-and-radio-item',labelStyle={'display': 'block'},
+                inputClassName='form-check-input',
+                labelClassName='form-check-label')
+
+
+
+
+            ]),
+            html.Br(),
+            dbc.Row([
+                html.Br(),
+                html.Div(id="tabla"),
+                html.Div(id="grafico")
+            ]),
+            html.Br(),
+
+            dbc.Row([
+                html.H2("Último 10 CVEs añadidos"),
+                html.Br(),
+                table_cve
+
+            ])
+
         ],
         className="mt-4"
     )
@@ -248,7 +285,7 @@ def update_table(value):
         return dash_table.DataTable(
             id='table1',
             data=least_dangerous_devices.to_dict('records'),
-            columns=[{'name': i, 'id': i} for i in least_dangerous_devices.columns],
+            columns=[{"name": 'ID Dispositivo', "id": 'id_dev'}, {'name': '% Inseguros', 'id': 'porcentaje_inseguros'}],
             style_cell={
                 'textAlign': 'left',
                 'minWidth': '0px',
