@@ -1,5 +1,6 @@
 import sqlite3
 
+import VirusTotalApi3.utils
 import dash_table
 from dash import *
 from flask import *
@@ -15,34 +16,36 @@ import tempfile
 import json
 import os
 from flask import send_file, make_response
-from informe import app as informe_app
-from informe import generar_informe
+#from informe import app as informe_app
+#from informe import generar_informe
 from flask import Flask, send_file, url_for
+from VirusTotalApi3 import *
 
 import plotly.express as px
 
 server = Flask(__name__)
 app = dash.Dash(external_stylesheets=[dbc.themes.UNITED], server=server, title="Dashboard SI")
 
+#TRATAMIENTO DE DATAFRAMES
 conn = sqlite3.connect('practica1.db')
 df_alerts = pd.read_sql_query("SELECT * FROM alerts", conn)
 df_devices_analisis = pd.read_sql_query("SELECT * FROM devices JOIN analisis on devices.analisis_id=analisis.id", conn)
 ord_devices = df_devices_analisis.sort_values(by='vulnerabilidades', ascending=False).head(10)
 top_devices = ord_devices[["id_dev", "vulnerabilidades"]]
-
 df_devices_analisis = pd.read_sql_query("SELECT * FROM devices JOIN analisis on devices.analisis_id=analisis.id", conn)
-df_devices_analisis['porcentaje_inseguros'] = (df_devices_analisis['servicios_inseguros'] / df_devices_analisis[
-    'servicios']) * 100
+df_devices_analisis['porcentaje_inseguros'] = (df_devices_analisis['servicios_inseguros'] / df_devices_analisis['servicios']) * 100
 most_dangerous_devices = df_devices_analisis[df_devices_analisis['porcentaje_inseguros'] >= 33]
 most_dangerous_devices = most_dangerous_devices[['id_dev', 'porcentaje_inseguros']]
 least_dangerous_devices = df_devices_analisis[df_devices_analisis['porcentaje_inseguros'] < 33]
 least_dangerous_devices = least_dangerous_devices[['id_dev', 'porcentaje_inseguros']]
+
+
+#TRATAMIENTO DE GRÁFICOS E IMÁGENES
 fig_devices = px.bar(top_devices, x="id_dev", y="vulnerabilidades", title="Top Dispositivos Vulnerables")
 fig_devices.update_xaxes(title_text="ID Dispositivo")
 fig_devices.update_yaxes(title_text="Vulnerabilidades")
 fig_devices.update_traces(marker_color='purple')
 fig_devices.write_image("fig_devices.png")
-
 fig_most_devices = px.bar(most_dangerous_devices, x="id_dev", y="porcentaje_inseguros",
                           title="Dispositivos más peligrosos")
 fig_most_devices.update_traces(marker_color='red')
@@ -66,7 +69,30 @@ df_cve = pd.read_json(response.text)
 df_cve = df_cve.head(10)
 df_cve = df_cve[['Published', 'id']]
 
-print(top_ips.reset_index().to_dict('records'))
+
+
+url=f'https://www.virustotal.com/api/v3/popular_threat_categories'
+headers = {'x-apikey':'7ae26c7cf98a49cc47563a714f9d9c0683e8c1a1e21091ec85987f5ac0ce3607'}
+response1 = requests.get(url,headers=headers)
+response1json = response1.json()
+df_threat = pd.DataFrame.from_dict(response1json)
+print(df_threat)
+
+table_threats = dash_table.DataTable(
+    data=df_threat.reset_index().to_dict('records'),
+    columns=[{"name": 'Amenazas', "id": 'data'}],
+    style_cell={
+        'textAlign': 'left',
+        'minWidth': '0px',
+    },
+    style_table={
+        'maxWidth': '400px', 'border': '1px solid black'
+    },
+    style_header={
+        'fontWeight': 'bold',
+        'fontSize': '20px'
+    }
+)
 
 table_ips = dash_table.DataTable(
     data=top_ips.reset_index().to_dict('records'),
@@ -193,9 +219,24 @@ app.layout = html.Div([
             html.Br(),
 
             dbc.Row([
-                html.H2("Último 10 CVEs añadidos"),
-                html.Br(),
-                table_cve
+                dbc.Col(
+                    html.Div([
+                            html.H2("Último 10 CVEs añadidos"),
+                            html.Br(),
+                            table_cve,
+
+                        ])
+
+                ),
+
+                dbc.Col(
+                    html.Div([
+                            html.H2("Top amenazas según VirusTotal API"),
+                            table_threats,
+
+                        ])
+
+                )
 
             ]),
             html.Br(),
