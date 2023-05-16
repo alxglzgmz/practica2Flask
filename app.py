@@ -203,7 +203,7 @@ app.layout = html.Div([
 
                 html.Button("Generar informe", id="generar-informe-button", className="mr-2"),
                 dummy_div,
-                html.A("Descargar informe", id="download-pdf", download="informe.pdf", href="", target="_blank")
+                html.A("Descargar informe", id="download-pdf", download="informe.pdf", href="/download/informe.pdf", target="_blank")
 
             ])
 
