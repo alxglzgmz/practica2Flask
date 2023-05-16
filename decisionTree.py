@@ -32,7 +32,7 @@ clf = tree.DecisionTreeClassifier()
 clf.fit(x_training,y_training)
 dot_data = tree.export_graphviz(clf, out_file=None,
                                 feature_names=['Porcentaje inseguridad'],
-                                class_names=['peligroso','noPeligroso'],
+                                class_names=['noPeligroso','peligroso'],
                                 filled=True,rounded=True,special_characters=True)
 graph=graphviz.Source(dot_data)
 graph.render('test.gv', view=True).replace('\\','/')

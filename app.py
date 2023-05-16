@@ -150,7 +150,6 @@ dummy_div = html.Div(id="dummy-div")
 app.layout = html.Div([
     dbc.NavbarSimple(
         children=[
-            dbc.NavItem(dbc.NavLink("Inicio", href="#")),
 
         ],
         brand="CMI",
