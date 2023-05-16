@@ -327,6 +327,7 @@ def generar_informe_pdf():
     pdf = FPDF()
     pdf.add_page()
 
+
     # Agregar título y subtítulo
     pdf.set_font("Arial", size=16)
     pdf.cell(200, 10, txt="Informe de Dispositivos", ln=1, align="C")
