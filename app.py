@@ -278,16 +278,26 @@ def generar_informe_pdf():
 
     # Agregar título y subtítulo
     pdf.set_font("Arial", size=16)
-    pdf.cell(200, 10, txt="Informe de Vulnerabilidades", ln=1, align="C")
+    pdf.cell(200, 10, txt="Informe de Dispositivos", ln=1, align="C")
     pdf.set_font("Arial", size=12)
     pdf.cell(200, 10, txt="Generado automáticamente por Dashboard SI", ln=1, align="C")
+
+    # Dispositivos menos peligrosos
     pdf.cell(200, 10, txt="Dispositivos menos peligrosos", ln=1)
-    pdf.image("fig_least_devices.png", x=10, y=160, w=100)
-    pdf.cell(200, 10, txt="Top 10 Direcciones IP Origen", ln=1)
-    pdf.set_font("Arial", size=10)
-    pdf.cell(200, 10, txt=top_ips.to_frame().to_string(index=False), ln=1)
-    pdf.cell(200, 10, txt="Top 10 CVEs más recientes", ln=1)
-    pdf.cell(200, 10, txt=df_cve.to_string(index=False), ln=1)
+    pdf.image("fig_least_devices.png", x=10, y=pdf.get_y(), w=100)  # Imagen debajo del texto
+    pdf.cell(200, 70, txt="", ln=1)  # Espacio en blanco después de la imagen
+
+    # Dispositivos más peligrosos
+    pdf.cell(200, 10, txt="Dispositivos más peligrosos", ln=1)
+    pdf.cell(200, 10, txt="", ln=1)
+    pdf.image("fig_most_devices.png", x=10, y=pdf.get_y(), w=100)
+    pdf.cell(200, 70, txt="", ln=1)
+
+    # Top Dispositivos vulnerables
+    pdf.cell(200, 10, txt="Top Dispositivos vulnerables", ln=1)
+    pdf.cell(200, 10, txt="", ln=1)
+    pdf.image("fig_devices.png", x=10, y=pdf.get_y(), w=100)
+    pdf.cell(200, 10, txt="", ln=1)
 
     pdf.output("informe.pdf")
 
