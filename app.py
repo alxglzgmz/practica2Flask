@@ -378,7 +378,7 @@ def download_informe():
 def generar_informe(n_clicks):
     if n_clicks is not None and n_clicks > 0:
         generar_informe_pdf()
-        return "/download/informe.pdf"
+        return "Informe generado correctamente, pulse el boton de Descargar Informe"
     else:
         return ""
 
