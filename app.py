@@ -11,8 +11,13 @@ from dash import dcc
 import requests
 from fpdf import FPDF
 from io import BytesIO
-from flask import send_file
 import tempfile
+import json
+import os
+from flask import send_file, make_response
+from informe import app as informe_app
+from informe import generar_informe
+from flask import Flask, send_file, url_for
 
 import plotly.express as px
 
@@ -111,70 +116,7 @@ table_cve = dash_table.DataTable(
     }
 )
 
-# Define el layout de la aplicación
-
-
-# app.layout = dbc.Container(children=[
-#     html.H1(children='Mi Dashboard'),
-#     html.Br(),
-#     html.Br(),
-#     html.H1(children='''
-#         Top 10 direcciones IP
-#     '''),
-#     html.Div([
-#         table_ips,
-#         html.Br(),
-#         dcc.Graph(
-#             id='graph',
-#             figure={
-#                 'data': [ips_bar],
-#                 'layout': {
-#                     'title': 'Top 10 Direcciones IP Origen',
-#                     'xaxis': {'title': 'Direcciones IP'},
-#                     'yaxis': {'title': 'Apariciones'}
-#                 }
-#             }
-#         ),], style={'padding': '10px'}),
-#     html.H1(children='''
-#         Top dispositivos más vulnerables
-#     '''),
-#     html.Div([
-#         table_devices,
-#         html.Br(),
-#         dcc.Graph(
-#             id='graph2',
-#             figure=fig_devices
-#
-#         ),], style={'padding':'10 px'}),
-#     html.H1(children='''
-#         Top dispositivos peligrosos
-#     '''),
-#     html.Br(),
-#     html.H2(children='''
-#         Elija una opción:
-#     '''),
-#
-#     dcc.RadioItems(options=['Dispositivos más peligrosos','Dispositivos menos peligrosos'],value='Dispositivos más peligrosos', id='controls-and-radio-item'),
-#     html.Br(),
-#     html.H2(children='''
-#         Tabla de la opción elegida:
-#     '''),
-#     html.Br(),
-#     html.Div(id='tabla'),
-#     html.Br(),
-#     html.H2(children='''
-#         Gráfico de la opción elegida:
-#     '''),
-#     html.Br(),
-#     html.Div(id='grafico'),
-#     html.Br(),
-#     html.H1(children='''
-#         Últimas 10 CVEs descubiertas
-#     '''),
-#     html.Br(),
-#     table_cve
-# ])
-
+dummy_div = html.Div(id="dummy-div")
 app.layout = html.Div([
     dbc.NavbarSimple(
         children=[
@@ -257,11 +199,11 @@ app.layout = html.Div([
 
             ]),
             html.Br(),
-
             dbc.Row([
-                html.H2("Generar informe"),
-                dbc.Button("Generar Informe", id="boton-generar-informe", color="primary", className="mr-1"),
-                html.Div(id="informe")
+
+                html.Button("Generar informe", id="generar-informe-button", className="mr-2"),
+                dummy_div,
+                html.A("Descargar informe", id="download-pdf", download="informe.pdf", href="", target="_blank")
 
             ])
 
@@ -330,95 +272,54 @@ def update_graph(value):
         )
 
 
-@callback(
-    Output('informe', 'children'),
-    Input(component_id='boton-generar-informe', component_property='n_clicks')
+def generar_informe_pdf():
+    pdf = FPDF()
+    pdf.add_page()
+
+    # Agregar título y subtítulo
+    pdf.set_font("Arial", size=16)
+    pdf.cell(200, 10, txt="Informe de Vulnerabilidades", ln=1, align="C")
+    pdf.set_font("Arial", size=12)
+    pdf.cell(200, 10, txt="Generado automáticamente por Dashboard SI", ln=1, align="C")
+    pdf.cell(200, 10, txt="Dispositivos menos peligrosos", ln=1)
+    pdf.image("fig_least_devices.png", x=10, y=160, w=100)
+    pdf.cell(200, 10, txt="Top 10 Direcciones IP Origen", ln=1)
+    pdf.set_font("Arial", size=10)
+    pdf.cell(200, 10, txt=top_ips.to_frame().to_string(index=False), ln=1)
+    pdf.cell(200, 10, txt="Top 10 CVEs más recientes", ln=1)
+    pdf.cell(200, 10, txt=df_cve.to_string(index=False), ln=1)
+
+    pdf.output("informe.pdf")
+
+
+@app.server.route("/download/informe.pdf")
+def download_informe():
+    """Genera y descarga el informe en formato PDF"""
+    generar_informe_pdf()  # Generar el informe PDF
+
+    # Leer el contenido del archivo PDF
+    with open("informe.pdf", "rb") as f:
+        pdf_content = f.read()
+
+    # Crear una respuesta para descargar el archivo
+    response = make_response(pdf_content)
+    response.headers["Content-Disposition"] = "attachment; filename=informe.pdf"
+    response.headers["Content-Type"] = "application/pdf"
+
+    return response
+
+
+@app.callback(
+    Output("dummy-div", "children"),
+    Input("generar-informe-button", "n_clicks")
 )
 def generar_informe(n_clicks):
-    if n_clicks:
-        # Crear documento PDF
-        pdf = FPDF()
-        pdf.add_page()
-
-        # Agregar título y subtítulo
-        pdf.set_font("Arial", size=16)
-        pdf.cell(200, 10, txt="Informe de Vulnerabilidades", ln=1, align="C")
-        pdf.set_font("Arial", size=12)
-        pdf.cell(200, 10, txt="Generado automáticamente por Dashboard SI", ln=1, align="C")
-
-        # Agregar gráficos y tablas
-        pdf.cell(200, 10, txt="Top Dispositivos Vulnerables", ln=1)
-        pdf.image("fig_devices.png", x=10, y=40, w=100)
-        pdf.cell(200, 10, txt="Dispositivos más peligrosos", ln=1)
-        pdf.image("fig_most_devices.png", x=10, y=100, w=100)
-        pdf.cell(200, 10, txt="Dispositivos menos peligrosos", ln=1)
-        pdf.image("fig_least_devices.png", x=10, y=160, w=100)
-        pdf.cell(200, 10, txt="Top 10 Direcciones IP Origen", ln=1)
-        pdf.set_font("Arial", size=10)
-        pdf.cell(200, 10, txt=top_ips.to_frame().to_string(index=False), ln=1)
-        pdf.cell(200, 10, txt="Top 10 CVEs más recientes", ln=1)
-        pdf.cell(200, 10, txt=df_cve.to_string(index=False), ln=1)
-
-        # Crear documento PDF
-        with tempfile.NamedTemporaryFile(delete=False) as tmp:
-            pdf.output(tmp.name)
-
-        # Enviar archivo como respuesta
-        return send_file(tmp.name, as_attachment=True)
-
-
-# @app.route('/')
-# def main():  # put application's code here
-#
-#     conn = sqlite3.connect('practica1.db')
-#     df_alerts = pd.read_sql_query("SELECT * FROM alerts", conn)
-#
-#     top_ips = df_alerts['origen'].value_counts().head(10)
-#     return render_template('top_ips.html', top_ips=top_ips)
-#     return 'Hello World!'
-#
-#
-# @app.route('/ips/<int:num_ips>')
-# def top_ips(num_ips):
-#     conn = sqlite3.connect('practica1.db')
-#     df_alerts = pd.read_sql_query("SELECT * FROM alerts",conn)
-#
-#     top_ips = df_alerts['origen'].value_counts().head(num_ips)
-#     return render_template('top_ips.html', top_ips=top_ips)
-#
-# @app.route('/devices/<int:num_devices>')
-# def top_devices(num_devices):
-#     conn = sqlite3.connect('practica1.db')
-#     df_devices_analisis = pd.read_sql_query("SELECT * FROM devices JOIN analisis on devices.analisis_id=analisis.id",conn)
-#
-#     ord_devices = df_devices_analisis.sort_values(by='vulnerabilidades', ascending=False).head(num_devices)
-#     top_devices = ord_devices[["id_dev", "vulnerabilidades"]]
-#
-#     print(top_devices)
-#     return render_template('top_devices.html', top_devices=top_devices)
-#
+    if n_clicks is not None and n_clicks > 0:
+        generar_informe_pdf()
+        return "/download/informe.pdf"
+    else:
+        return ""
 
 
 if __name__ == '__main__':
     app.run_server(debug=True)
-#
-#
-# @app.route('/dangerousDevices/<int:x>', methods=['GET','POST'])
-# def danger_devices(x):
-#
-#     option = request.args.get('option')
-#     conn = sqlite3.connect('practica1.db')
-#     df_devices_analisis = pd.read_sql_query("SELECT * FROM devices JOIN analisis on devices.analisis_id=analisis.id",conn)
-#
-#     df_devices_analisis['porcentaje_inseguros'] = (df_devices_analisis['servicios_inseguros']/df_devices_analisis['servicios']) * 100
-#
-#     # Filtrar dispositivos peligrosos según la opción seleccionada
-#     if option == 'menos_inseguros':
-#         dangerous_df = df_devices_analisis[df_devices_analisis['porcentaje_inseguros'] < 33]
-#     else:
-#         dangerous_df = df_devices_analisis[df_devices_analisis['porcentaje_inseguros'] >= 33]
-#
-#     top_x = dangerous_df.sort_values('porcentaje_inseguros').head(x)
-#     return render_template('dangerous_devices.html', x=x, option=option, top_x=top_x)
-#
-#
