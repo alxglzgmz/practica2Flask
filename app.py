@@ -74,7 +74,7 @@ df_cve = df_cve[['Published', 'id']]
 
 # PETICION A LA API DE VIRUSTOTAL
 url=f'https://www.virustotal.com/api/v3/popular_threat_categories'
-headers = {'x-apikey':'7ae26c7cf98a49cc47563a714f9d9c0683e8c1a1e21091ec85987f5ac0ce3607'}
+
 response1 = requests.get(url,headers=headers)
 response1json = response1.json()
 df_threat = pd.DataFrame.from_dict(response1json)
